@@ -1,0 +1,15 @@
+---
+description: Code formatting rules - matches eslint.config.mjs dprint config
+alwaysApply: true
+---
+
+# Formatting
+
+Match the project's dprint/ESLint config:
+
+- Indent: 2 spaces
+- Line width: 120
+- No semicolons (ASI)
+- Double quotes for strings
+- No trailing commas
+- Arrow functions: use parentheses around params

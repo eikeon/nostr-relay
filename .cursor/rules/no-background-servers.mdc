@@ -1,0 +1,13 @@
+---
+description: How to verify the relay without leaving orphaned processes
+alwaysApply: true
+---
+
+# Verifying the Relay
+
+**Never run dev servers in the background** (e.g. `npm run dev` with `is_background: true`). Background processes leave orphaned processes on ports.
+
+## How to verify
+
+- **Smoke test** (relay actually runs): `npm run smoke` — starts the relay on port 8182, waits a few seconds, then stops it. No orphaned processes.
+- **Build/lint only**: `npm run build` or `npm run lint` when a full smoke test is not needed.
