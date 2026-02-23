@@ -32,8 +32,8 @@
     "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.10",
-    "effect": "4.0.0-beta.10",
+    "@effect/platform-node": "4.0.0-beta.11",
+    "effect": "4.0.0-beta.11",
     "nostr-tools": "^2.23.1"
   },
   "devDependencies": {
