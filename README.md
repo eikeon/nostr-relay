@@ -18,13 +18,29 @@ NOSTR is a decentralized protocol for social applications. This relay implements
 
 - Node.js >= 24.0.0
 
-## Installation
+## Run from npm
 
 ```bash
-npm install
+npx @eikeon/nostr-relay
 ```
 
-## Scripts
+Connects at `ws://localhost:8181`. Or install globally:
+
+```bash
+npm install -g @eikeon/nostr-relay
+nostr-relay
+```
+
+## Develop from source
+
+```bash
+git clone https://github.com/eikeon/nostr-relay.git
+cd nostr-relay
+npm install
+npm run dev
+```
+
+### Scripts
 
 | Script          | Purpose                          |
 | --------------- | -------------------------------- |
@@ -35,17 +51,7 @@ npm install
 | `npm run smoke` | Verify relay starts on port 8182 |
 | `npm run lint`  | ESLint + tsc check               |
 
-## Run
-
-```bash
-npm run dev
-```
-
-Connects at `ws://localhost:8181`.
-
 For production: `npm run build && npm run start`.
-
-To verify the relay starts: `npm run smoke`.
 
 ## Configuration
 
