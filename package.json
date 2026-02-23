@@ -8,10 +8,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "nostr-relay": "./dist/index.js"
+    "nostr-relay": "./bin/nostr-relay.js"
   },
   "files": [
     "dist",
+    "bin",
     "README.md",
     "LICENSE",
     "scripts"
