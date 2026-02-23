@@ -7,8 +7,19 @@
   "author": "Daniel Krech <eikeon@eikeon.com>",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist", "README.md", "LICENSE"],
-  "publishConfig": { "access": "public" },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eikeon/nostr-relay.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
@@ -36,6 +47,7 @@
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
     "eslint": "^10.0.1",
+    "semantic-release": "^25.0.3",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "vitest": "^3.2.0"
