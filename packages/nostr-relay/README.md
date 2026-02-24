@@ -62,10 +62,6 @@ For production: `pnpm run build && pnpm run start`.
 - `RELAY_CREATED_AT_WINDOW_SEC` - Max seconds event created_at can differ from now (default: 900)
 - `RELAY_BANNED_PUBKEYS` - Comma-separated 64-char hex pubkeys to ban (default: empty)
 
-## AWS Deployment
-
-For a serverless DynamoDB-backed relay, see [packages/nostr-relay-aws](packages/nostr-relay-aws).
-
 ## License
 
 MIT License (see [LICENSE](LICENSE)).

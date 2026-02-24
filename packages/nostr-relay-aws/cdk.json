@@ -1,0 +1,1 @@
+{"app":"npx tsx cdk/bin/simple-app.ts","context":{"@aws-cdk/aws-lambda:recognizeLayerVersion":true}}

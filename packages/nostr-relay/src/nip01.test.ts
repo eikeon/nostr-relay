@@ -10,7 +10,7 @@ import {
   isRegular,
   isReplaceable,
   replaceableKey,
-  shouldReplace
+  shouldReplace,
 } from "./nip01.js"
 import type { NostrEvent } from "./schema.js"
 
@@ -26,7 +26,7 @@ function makeEvent(overrides: Partial<NostrEvent> = {}): NostrEvent {
     tags: [],
     content: "",
     sig: HEX128,
-    ...overrides
+    ...overrides,
   }
 }
 
@@ -100,7 +100,7 @@ describe("addressableKey", () => {
     const event = makeEvent({
       kind: 30023,
       pubkey: "b".repeat(64),
-      tags: [["d", "my-identifier"]]
+      tags: [["d", "my-identifier"]],
     })
     expect(addressableKey(event)).toBe("30023:" + "b".repeat(64) + ":my-identifier")
   })
@@ -109,7 +109,7 @@ describe("addressableKey", () => {
     const event = makeEvent({
       kind: 30023,
       pubkey: "b".repeat(64),
-      tags: []
+      tags: [],
     })
     expect(addressableKey(event)).toBe("30023:" + "b".repeat(64) + ":")
   })

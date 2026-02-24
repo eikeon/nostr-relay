@@ -1,40 +1,24 @@
-import * as effectEslint from "@effect/eslint-plugin";
-import { fixupConfigRules } from "@eslint/compat";
-import { FlatCompat } from "@eslint/eslintrc";
-import js from "@eslint/js";
-import tsParser from "@typescript-eslint/parser";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-  recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
-});
+import * as effectEslint from "@effect/eslint-plugin"
+import js from "@eslint/js"
+import tseslint from "typescript-eslint"
 
 export default [
   { ignores: ["**/dist", "**/node_modules"] },
-  ...fixupConfigRules(
-    compat.extends(
-      "eslint:recommended",
-      "plugin:@typescript-eslint/eslint-recommended",
-      "plugin:@typescript-eslint/recommended"
-    )
-  ),
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
   ...effectEslint.configs.dprint,
   {
     languageOptions: {
-      parser: tsParser,
-      ecmaVersion: 2024,
-      sourceType: "module",
+      parserOptions: {
+        ecmaVersion: 2024,
+        sourceType: "module"
+      }
     },
     rules: {
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
       ],
       "@typescript-eslint/consistent-type-imports": "warn",
       "@effect/dprint": [
@@ -45,12 +29,12 @@ export default [
             lineWidth: 120,
             semiColons: "asi",
             quoteStyle: "alwaysDouble",
-            trailingCommas: "never",
+            trailingCommas: "onlyMultiLine",
             operatorPosition: "maintain",
-            "arrowFunction.useParentheses": "force",
-          },
-        },
-      ],
-    },
-  },
-];
+            "arrowFunction.useParentheses": "force"
+          }
+        }
+      ]
+    }
+  }
+]

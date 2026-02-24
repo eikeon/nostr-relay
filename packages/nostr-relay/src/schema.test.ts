@@ -17,7 +17,7 @@ describe("parseFilter", () => {
     const raw = {
       ids: ["a".repeat(64), "b".repeat(64), 123],
       authors: ["c".repeat(64)],
-      kinds: [0, 1, 3.14]
+      kinds: [0, 1, 3.14],
     }
     const result = parseFilter(raw)
     expect(result.ids).toEqual(["a".repeat(64), "b".repeat(64)])
@@ -37,7 +37,7 @@ describe("parseFilter", () => {
     const raw = {
       "#e": ["event1", "event2"],
       "#p": ["pubkey1"],
-      "#r": ["relay1", 123]
+      "#r": ["relay1", 123],
     }
     const result = parseFilter(raw)
     expect(result["#e"]).toEqual(["event1", "event2"])

@@ -14,3 +14,5 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) f
 ## Releases
 
 Releases are automated via [semantic-release](https://github.com/semantic-release/semantic-release) when changes are merged to `main`. No manual version bumping or `npm publish` is required.
+
+Pushes to the `alpha` branch create prereleases (e.g. `1.0.2-alpha.0`) for both `@eikeon/nostr-relay` and `@eikeon/nostr-relay-aws`.

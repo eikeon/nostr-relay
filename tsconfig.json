@@ -1,26 +1,4 @@
 {
-  "compilerOptions": {
-    "target": "ES2024",
-    "lib": ["ES2024"],
-    "module": "node20",
-    "moduleResolution": "nodenext",
-    "outDir": "dist",
-    "rootDir": "src",
-    "strict": true,
-    "skipLibCheck": true,
-    "types": ["node"],
-    "noEmit": false,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "plugins": [
-      {
-        "name": "@effect/language-service",
-        "ignoreEffectWarningsInTscExitCode": false,
-        "ignoreEffectSuggestionsInTscExitCode": false
-      }
-    ]
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "files": [],
+  "references": []
 }
