@@ -46,13 +46,13 @@ importers:
         specifier: ^0.75.1
         version: 0.75.1
       '@effect/vitest':
-        specifier: ^4.0.0-beta.10
-        version: 4.0.0-beta.14(effect@4.0.0-beta.11)(vitest@3.2.4(@types/node@24.10.14)(tsx@4.21.0)(yaml@2.8.2))
+        specifier: 4.0.0-beta.15
+        version: 4.0.0-beta.15(effect@4.0.0-beta.11)(vitest@3.2.4(@types/node@24.10.14)(tsx@4.21.0)(yaml@2.8.2))
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.0.2)
       '@types/node':
-        specifier: ^24
+        specifier: ^24.10.14
         version: 24.10.14
       eslint:
         specifier: ^10.0.2
@@ -70,7 +70,7 @@ importers:
         specifier: ^8.56.1
         version: 8.56.1(eslint@10.0.2)(typescript@5.9.3)
       vitest:
-        specifier: ^3.2.1
+        specifier: ^3.2.4
         version: 3.2.4(@types/node@24.10.14)(tsx@4.21.0)(yaml@2.8.2)
       ws:
         specifier: ^8.19.0
@@ -82,13 +82,13 @@ importers:
         specifier: ^2.31.0
         version: 2.31.0
       '@aws-sdk/client-apigatewaymanagementapi':
-        specifier: ^3.996.0
+        specifier: ^3.998.0
         version: 3.998.0
       '@aws-sdk/client-dynamodb':
-        specifier: ^3.996.0
+        specifier: ^3.998.0
         version: 3.998.0
       '@aws-sdk/lib-dynamodb':
-        specifier: ^3.996.0
+        specifier: ^3.998.0
         version: 3.998.0(@aws-sdk/client-dynamodb@3.998.0)
       '@eikeon/nostr-relay':
         specifier: workspace:*
@@ -116,7 +116,7 @@ importers:
         specifier: ^8.10.160
         version: 8.10.160
       '@types/node':
-        specifier: ^24
+        specifier: ^24.10.14
         version: 24.10.14
       aws-cdk:
         specifier: ^2.1107.0
@@ -338,11 +338,11 @@ packages:
     resolution: {integrity: sha512-g9xD2tAQgRFpYC2YgpZq02VeSL5fBbFJ0B/g1o+14NuNmwtaYJc7SjiLWAA9eyhJHosNrn6h1Ye+Kx6j5mN0AA==}
     hasBin: true
 
-  '@effect/platform-node-shared@4.0.0-beta.14':
-    resolution: {integrity: sha512-rkbflXMBJrugRvTzlqAyLbwGunqtrc9Xv9wY3YnpaxovgzGm1+l7FKZCkeBdtkc4wYkS79ygHVmsSUnOeSTf/Q==}
+  '@effect/platform-node-shared@4.0.0-beta.15':
+    resolution: {integrity: sha512-8u5UfElKhZYnm+IwBcvkVqx2jEDysmk9NtqkLb36MTNATkBc8Qk14xzJY+wpPzYPDSWdTOfGdVxyZp7WBiGY/g==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
-      effect: ^4.0.0-beta.14
+      effect: ^4.0.0-beta.15
 
   '@effect/platform-node@4.0.0-beta.11':
     resolution: {integrity: sha512-P31Lqw/GZnsqsaxQiWi9XJz6M8aANgLCYdSUwzx0Kx+yKVnVqYA7+eqZVZPi4jLq0oMGE3LnPhBSOYGtY/eSbw==}
@@ -351,10 +351,10 @@ packages:
       effect: ^4.0.0-beta.11
       ioredis: ^5.7.0
 
-  '@effect/vitest@4.0.0-beta.14':
-    resolution: {integrity: sha512-Gv8ZQjvgvdLrBg5hh6KhPj+IGowpI3/D+Lbaca586H0iDKnkXzLqMEm5Op+iCOU7HbPI07ksT3Ol2AEWTulSdA==}
+  '@effect/vitest@4.0.0-beta.15':
+    resolution: {integrity: sha512-/dPppQ4V3/fmz+jDWeNB9V3kxBjEJM6RjrH4uImlcdNwd6RkptknpvTAFvLeZAVL/v3ER4SO4LGBjb58s47HdA==}
     peerDependencies:
-      effect: ^4.0.0-beta.14
+      effect: ^4.0.0-beta.15
       vitest: ^3.0.0
 
   '@esbuild/aix-ppc64@0.27.3':
@@ -3211,7 +3211,7 @@ snapshots:
 
   '@effect/language-service@0.75.1': {}
 
-  '@effect/platform-node-shared@4.0.0-beta.14(effect@4.0.0-beta.11)':
+  '@effect/platform-node-shared@4.0.0-beta.15(effect@4.0.0-beta.11)':
     dependencies:
       '@types/ws': 8.18.1
       effect: 4.0.0-beta.11
@@ -3222,7 +3222,7 @@ snapshots:
 
   '@effect/platform-node@4.0.0-beta.11(effect@4.0.0-beta.11)(ioredis@5.9.3)':
     dependencies:
-      '@effect/platform-node-shared': 4.0.0-beta.14(effect@4.0.0-beta.11)
+      '@effect/platform-node-shared': 4.0.0-beta.15(effect@4.0.0-beta.11)
       effect: 4.0.0-beta.11
       ioredis: 5.9.3
       mime: 4.1.0
@@ -3231,7 +3231,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@effect/vitest@4.0.0-beta.14(effect@4.0.0-beta.11)(vitest@3.2.4(@types/node@24.10.14)(tsx@4.21.0)(yaml@2.8.2))':
+  '@effect/vitest@4.0.0-beta.15(effect@4.0.0-beta.11)(vitest@3.2.4(@types/node@24.10.14)(tsx@4.21.0)(yaml@2.8.2))':
     dependencies:
       effect: 4.0.0-beta.11
       vitest: 3.2.4(@types/node@24.10.14)(tsx@4.21.0)(yaml@2.8.2)
