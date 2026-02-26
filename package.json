@@ -7,7 +7,7 @@
     "build": "pnpm -r build",
     "dev": "pnpm --filter @eikeon/nostr-relay dev",
     "test": "pnpm -r test",
-    "lint": "pnpm -r lint",
+    "lint": "pnpm --filter @eikeon/nostr-relay build && pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",
     "smoke": "pnpm --filter @eikeon/nostr-relay smoke",
     "cdk": "pnpm --filter @eikeon/nostr-relay-aws cdk",
