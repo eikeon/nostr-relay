@@ -38,7 +38,7 @@
     }
   },
   "bin": {
-    "nostr-relay": "./dist/bin/nostr-relay.js"
+    "nostr-relay": "./bin/nostr-relay.js"
   },
   "files": [
     "dist",
