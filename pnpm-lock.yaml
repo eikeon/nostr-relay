@@ -8,9 +8,21 @@ importers:
 
   .:
     devDependencies:
+      '@effect/eslint-plugin':
+        specifier: ^0.3.2
+        version: 0.3.2
+      '@eslint/js':
+        specifier: ^10.0.1
+        version: 10.0.1(eslint@10.0.2)
+      eslint:
+        specifier: ^10.0.2
+        version: 10.0.2
       typescript:
         specifier: ~5.9.3
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8.56.1
+        version: 8.56.1(eslint@10.0.2)(typescript@5.9.3)
 
   packages/nostr-relay:
     dependencies:
