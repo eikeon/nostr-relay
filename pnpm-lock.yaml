@@ -103,8 +103,8 @@ importers:
         specifier: ^10.5.1
         version: 10.5.1
       effect:
-        specifier: 4.0.0-beta.11
-        version: 4.0.0-beta.11
+        specifier: 4.0.0-beta.17
+        version: 4.0.0-beta.17
       nostr-tools:
         specifier: ^2.23.1
         version: 2.23.1(typescript@5.9.3)
@@ -1428,9 +1428,6 @@ packages:
 
   duplexer2@0.1.4:
     resolution: {integrity: sha512-asLFVfWWtJ90ZyOUHMqk7/S2w2guQKxUI2itj3d92ADHhxUSbCMGi1f1cBcJ7xM1To+pE/Khbwo1yuNbMEPKeA==}
-
-  effect@4.0.0-beta.11:
-    resolution: {integrity: sha512-xBUzwvNPoc7bcNUKS1Z7n6Nd5IL9AB/iV64GS1L44qmUgjuPex2A9DAXGUJkolTb8e65G55JerAX9T0Ha5fmRA==}
 
   effect@4.0.0-beta.17:
     resolution: {integrity: sha512-1NPWLH/ufmoJXHInKTirtPMgKZ/D7ckRGtTP444GMR457pf092UBNLPDHgnUogmTgT2DWniFWq9eyn+vY60UlQ==}
@@ -4383,19 +4380,6 @@ snapshots:
   duplexer2@0.1.4:
     dependencies:
       readable-stream: 2.3.8
-
-  effect@4.0.0-beta.11:
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      fast-check: 4.5.3
-      find-my-way-ts: 0.1.6
-      ini: 6.0.0
-      kubernetes-types: 1.30.0
-      msgpackr: 1.11.8
-      multipasta: 0.2.7
-      toml: 3.0.0
-      uuid: 13.0.0
-      yaml: 2.8.2
 
   effect@4.0.0-beta.17:
     dependencies:
