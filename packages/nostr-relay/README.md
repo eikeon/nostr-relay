@@ -62,6 +62,10 @@ For production: `pnpm run build && pnpm run start`.
 - `RELAY_CREATED_AT_WINDOW_SEC` - Max seconds event created_at can differ from now (default: 900)
 - `RELAY_BANNED_PUBKEYS` - Comma-separated 64-char hex pubkeys to ban (default: empty)
 
+## See also
+
+- [@eikeon/nostr-relay-aws](https://www.npmjs.com/package/@eikeon/nostr-relay-aws) - AWS serverless implementation (DynamoDB, Lambda, API Gateway WebSocket)
+
 ## License
 
 MIT License (see [LICENSE](LICENSE)).
