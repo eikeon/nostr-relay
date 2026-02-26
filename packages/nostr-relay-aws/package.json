@@ -1,0 +1,57 @@
+{
+  "name": "@eikeon/nostr-relay-aws",
+  "version": "1.0.3-alpha.2",
+  "type": "module",
+  "license": "MIT",
+  "description": "NIP-01 NOSTR relay - AWS serverless implementation (DynamoDB, Lambda, API Gateway WebSocket)",
+  "author": "Daniel Krech <eikeon@eikeon.com>",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "files": [
+    "dist",
+    "cdk",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eikeon/nostr-relay.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "test": "echo 'No tests in aws package'",
+    "build": "tsc",
+    "cdk": "cdk",
+    "cdk:bootstrap": "cdk bootstrap",
+    "cdk:deploy": "cdk deploy --all",
+    "lint": "eslint \"src/**/*.ts\" \"cdk/**/*.ts\" && tsc --noEmit",
+    "lint:fix": "eslint \"src/**/*.ts\" \"cdk/**/*.ts\" --fix"
+  },
+  "dependencies": {
+    "@aws-lambda-powertools/logger": "^2.31.0",
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.998.0",
+    "@aws-sdk/client-dynamodb": "^3.998.0",
+    "@aws-sdk/lib-dynamodb": "^3.998.0",
+    "@eikeon/nostr-relay": "workspace:*",
+    "aws-cdk-lib": "^2.240.0",
+    "constructs": "^10.5.1",
+    "effect": "4.0.0-beta.17",
+    "nostr-tools": "^2.23.1"
+  },
+  "devDependencies": {
+    "@effect/eslint-plugin": "^0.3.2",
+    "@eslint/js": "^10.0.1",
+    "@types/aws-lambda": "^8.10.160",
+    "@types/node": "^24.10.14",
+    "aws-cdk": "^2.1107.0",
+    "eslint": "^10.0.2",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.56.1"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

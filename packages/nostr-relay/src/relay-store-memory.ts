@@ -5,12 +5,12 @@
 import { Effect, Layer, Ref } from "effect"
 import { addressableKey, isAddressable, isEphemeral, isReplaceable, replaceableKey, shouldReplace } from "./nip01.js"
 import type { NostrEvent } from "./schema.js"
-import { RelayStore, type SubEntry } from "./services.js"
+import { RelayStore } from "./services.js"
 
 function allEventIds(
   regular: Map<string, NostrEvent>,
   replaceable: Map<string, NostrEvent>,
-  addressable: Map<string, NostrEvent>
+  addressable: Map<string, NostrEvent>,
 ): Set<string> {
   const ids = new Set<string>()
   for (const e of regular.values()) ids.add(e.id)
@@ -22,7 +22,7 @@ function allEventIds(
 function mergeEvents(
   regular: Map<string, NostrEvent>,
   replaceable: Map<string, NostrEvent>,
-  addressable: Map<string, NostrEvent>
+  addressable: Map<string, NostrEvent>,
 ): Map<string, NostrEvent> {
   const result = new Map<string, NostrEvent>()
   for (const e of regular.values()) result.set(e.id, e)
@@ -37,7 +37,6 @@ export const RelayStoreLive = Layer.effect(RelayStore)(
     const regularRef = yield* Ref.make<Map<string, NostrEvent>>(new Map())
     const replaceableRef = yield* Ref.make<Map<string, NostrEvent>>(new Map())
     const addressableRef = yield* Ref.make<Map<string, NostrEvent>>(new Map())
-    const subsRef = yield* Ref.make<Map<string, SubEntry>>(new Map())
 
     return {
       hasEvent: (id: string) =>
@@ -45,7 +44,7 @@ export const RelayStoreLive = Layer.effect(RelayStore)(
           const [regular, replaceable, addressable] = yield* Effect.all([
             Ref.get(regularRef),
             Ref.get(replaceableRef),
-            Ref.get(addressableRef)
+            Ref.get(addressableRef),
           ])
           return allEventIds(regular, replaceable, addressable).has(id)
         }),
@@ -55,7 +54,7 @@ export const RelayStoreLive = Layer.effect(RelayStore)(
           const [regular, replaceable, addressable] = yield* Effect.all([
             Ref.get(regularRef),
             Ref.get(replaceableRef),
-            Ref.get(addressableRef)
+            Ref.get(addressableRef),
           ])
           const has = allEventIds(regular, replaceable, addressable).has(event.id)
           if (has) return { duplicate: true }
@@ -101,34 +100,10 @@ export const RelayStoreLive = Layer.effect(RelayStore)(
           const [regular, replaceable, addressable] = yield* Effect.all([
             Ref.get(regularRef),
             Ref.get(replaceableRef),
-            Ref.get(addressableRef)
+            Ref.get(addressableRef),
           ])
           return mergeEvents(regular, replaceable, addressable)
         }),
-
-      getSubs: () => Ref.get(subsRef),
-      updateSubs: (fn) => Ref.update(subsRef, fn),
-      updateEvents: (fn) =>
-        Effect.gen(function*() {
-          const [r, rp, a] = yield* Effect.all([
-            Ref.get(regularRef),
-            Ref.get(replaceableRef),
-            Ref.get(addressableRef)
-          ])
-          const merged = mergeEvents(r, rp, a)
-          const updated = fn(merged)
-          const nextRegular = new Map<string, NostrEvent>()
-          const nextReplaceable = new Map<string, NostrEvent>()
-          const nextAddressable = new Map<string, NostrEvent>()
-          for (const e of updated.values()) {
-            if (isReplaceable(e.kind)) nextReplaceable.set(replaceableKey(e), e)
-            else if (isAddressable(e.kind)) nextAddressable.set(addressableKey(e), e)
-            else nextRegular.set(e.id, e)
-          }
-          yield* Ref.set(regularRef, nextRegular)
-          yield* Ref.set(replaceableRef, nextReplaceable)
-          yield* Ref.set(addressableRef, nextAddressable)
-        })
     }
-  })
+  }),
 )

@@ -5,11 +5,11 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts"],
     globals: false,
-    setupFiles: ["./vitest.setup.ts"]
+    setupFiles: ["./vitest.setup.ts"],
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "./src")
-    }
-  }
+      "@": resolve(__dirname, "./src"),
+    },
+  },
 })

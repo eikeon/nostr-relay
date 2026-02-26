@@ -4,7 +4,7 @@ NIP-01 NOSTR relay - WebSocket server built with Effect v4.
 
 ## Overview
 
-NOSTR is a decentralized protocol for social applications. This relay implements a NIP-01 WebSocket server using Effect v4. Events are stored in memory only (no persistence).
+NOSTR is a decentralized protocol for social applications. This relay implements a NIP-01 WebSocket server using Effect v4. Events are stored in memory only (no persistence). For a persistent implementation, see [@eikeon/nostr-relay-aws](https://www.npmjs.com/package/@eikeon/nostr-relay-aws), the AWS serverless-backed version (DynamoDB, Lambda, API Gateway WebSocket).
 
 ## NIPs Implemented
 
@@ -62,9 +62,9 @@ For production: `pnpm run build && pnpm run start`.
 - `RELAY_CREATED_AT_WINDOW_SEC` - Max seconds event created_at can differ from now (default: 900)
 - `RELAY_BANNED_PUBKEYS` - Comma-separated 64-char hex pubkeys to ban (default: empty)
 
-## AWS Deployment
+## See also
 
-For a serverless DynamoDB-backed relay, see [packages/nostr-relay-aws](packages/nostr-relay-aws).
+- [@eikeon/nostr-relay-aws](https://www.npmjs.com/package/@eikeon/nostr-relay-aws) - AWS serverless implementation (DynamoDB, Lambda, API Gateway WebSocket)
 
 ## License
 

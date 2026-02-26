@@ -8,10 +8,10 @@ import { HEX64, SINGLE_LETTER_TAG } from "./constants.js"
 const HEX128 = /^[a-f0-9]{128}$/
 
 const isHex64 = Schema.makeFilter((s: string) => HEX64.test(s), {
-  expected: "64-char lowercase hex string"
+  expected: "64-char lowercase hex string",
 })
 const isHex128 = Schema.makeFilter((s: string) => HEX128.test(s), {
-  expected: "128-char lowercase hex string"
+  expected: "128-char lowercase hex string",
 })
 
 /** NIP-01 event structure */
@@ -20,11 +20,11 @@ export const NostrEventSchema = Schema.Struct({
   pubkey: Schema.String.pipe(Schema.check(isHex64)),
   created_at: Schema.Number,
   kind: Schema.Number.pipe(
-    Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 65535 }))
+    Schema.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 65535 })),
   ),
   tags: Schema.Array(Schema.Array(Schema.String)),
   content: Schema.String,
-  sig: Schema.String.pipe(Schema.check(isHex128))
+  sig: Schema.String.pipe(Schema.check(isHex128)),
 })
 
 export type NostrEvent = Schema.Schema.Type<typeof NostrEventSchema>
@@ -39,7 +39,7 @@ export const NostrFilterSchema = Schema.Struct({
   limit: Schema.optionalKey(Schema.Number),
   "#e": Schema.optionalKey(Schema.Array(Schema.String)),
   "#p": Schema.optionalKey(Schema.Array(Schema.String)),
-  "#a": Schema.optionalKey(Schema.Array(Schema.String))
+  "#a": Schema.optionalKey(Schema.Array(Schema.String)),
 })
 
 export type NostrFilter = Schema.Schema.Type<typeof NostrFilterSchema> & {
@@ -59,7 +59,7 @@ export function parseFilter(raw: unknown): NostrFilter {
   }
   if (Array.isArray(obj.kinds)) {
     result.kinds = obj.kinds.filter(
-      (x): x is number => typeof x === "number" && Number.isInteger(x)
+      (x): x is number => typeof x === "number" && Number.isInteger(x),
     )
   }
   if (typeof obj.since === "number") result.since = obj.since
@@ -68,7 +68,7 @@ export function parseFilter(raw: unknown): NostrFilter {
   for (const key of Object.keys(obj)) {
     if (SINGLE_LETTER_TAG.test(key) && Array.isArray(obj[key])) {
       result[key] = (obj[key] as unknown[]).filter(
-        (x): x is string => typeof x === "string"
+        (x): x is string => typeof x === "string",
       )
     }
   }

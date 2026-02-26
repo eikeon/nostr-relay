@@ -18,7 +18,7 @@ function makeEvent(overrides: Partial<NostrEvent> = {}): NostrEvent {
     tags: [],
     content: "",
     sig: HEX128,
-    ...overrides
+    ...overrides,
   }
 }
 

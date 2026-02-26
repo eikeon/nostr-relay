@@ -27,3 +27,8 @@ coverage/
 
 # Misc
 .turbo/
+package-lock.json
+
+# CDK (in packages/nostr-relay-aws)
+cdk.out/
+cdk.context.json

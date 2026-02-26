@@ -1,0 +1,90 @@
+{
+  "name": "@eikeon/nostr-relay",
+  "version": "1.0.3-alpha.2",
+  "type": "module",
+  "license": "MIT",
+  "description": "NIP-01 NOSTR relay - WebSocket server built with Effect v4",
+  "author": "Daniel Krech <eikeon@eikeon.com>",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./memory": {
+      "types": "./dist/src/in-memory-relay.d.ts",
+      "default": "./dist/src/in-memory-relay.js"
+    },
+    "./services": {
+      "types": "./dist/src/services/index.d.ts",
+      "default": "./dist/src/services/index.js"
+    },
+    "./schema": {
+      "types": "./dist/src/schema.d.ts",
+      "default": "./dist/src/schema.js"
+    },
+    "./filter": {
+      "types": "./dist/src/filter.d.ts",
+      "default": "./dist/src/filter.js"
+    },
+    "./nip01": {
+      "types": "./dist/src/nip01.d.ts",
+      "default": "./dist/src/nip01.js"
+    },
+    "./constants": {
+      "types": "./dist/src/constants.d.ts",
+      "default": "./dist/src/constants.js"
+    }
+  },
+  "bin": {
+    "nostr-relay": "./bin/nostr-relay.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eikeon/nostr-relay.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "dev": "tsx bin/nostr-relay.ts",
+    "build": "tsc",
+    "start": "node dist/bin/nostr-relay.js",
+    "prepare": "effect-language-service patch",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run",
+    "lint": "eslint \"src/**/*.ts\" && tsc --noEmit",
+    "smoke": "bash ../../scripts/smoke-test.sh",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.0-beta.17",
+    "effect": "4.0.0-beta.17",
+    "nostr-tools": "^2.23.1"
+  },
+  "devDependencies": {
+    "@effect/eslint-plugin": "^0.3.2",
+    "@effect/language-service": "^0.75.1",
+    "@effect/vitest": "4.0.0-beta.15",
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.10.14",
+    "eslint": "^10.0.2",
+    "semantic-release": "^25.0.3",
+    "tsx": "^4.21.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^3.2.4",
+    "ws": "^8.19.0"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}
