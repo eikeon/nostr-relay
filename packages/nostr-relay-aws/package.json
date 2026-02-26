@@ -1,6 +1,6 @@
 {
   "name": "@eikeon/nostr-relay-aws",
-  "version": "1.0.2",
+  "version": "1.0.3-alpha.2",
   "type": "module",
   "license": "MIT",
   "description": "NIP-01 NOSTR relay - AWS serverless implementation (DynamoDB, Lambda, API Gateway WebSocket)",
