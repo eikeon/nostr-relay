@@ -149,10 +149,12 @@ function handler(event) {
 
       const originDomain = `${wsApi.apiId}.execute-api.${this.region}.amazonaws.com`
       const distribution = new cloudfront.Distribution(this, "RelayDistribution", {
+        httpVersion: cloudfront.HttpVersion.HTTP1_1,
         defaultBehavior: {
           origin: new cloudfrontOrigins.HttpOrigin(originDomain, { originPath: "/prod" }),
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
           functionAssociations: [
             {
               function: nip11Function,
