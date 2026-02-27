@@ -24,3 +24,21 @@ pnpm cdk deploy -c domainName=relay.example.com -c certificateArn=arn:aws:acm:us
 ```
 
 You need an ACM certificate in `us-east-1` and a Route53 hosted zone for the domain.
+
+With a custom domain, a minimal CloudFront distribution is added to serve [NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) relay metadata at the same hostname. Optional NIP-11 context overrides:
+
+```bash
+pnpm cdk deploy -c domainName=relay.eikeon.com \
+  -c certificateArn=arn:aws:acm:us-east-1:ACCOUNT:certificate/ID \
+  -c hostedZoneDomain=eikeon.com \
+  -c nip11Name="eikeon Learn Relay" \
+  -c nip11Description="Interactive vocabulary exercises & multi-learner sessions on Nostr. Visit https://learn.eikeon.com" \
+  -c nip11Icon="https://learn.eikeon.com/favicon.ico" \
+  -c nip11Contact="https://learn.eikeon.com"
+```
+
+Test NIP-11:
+
+```bash
+curl -H "Accept: application/nostr+json" https://relay.eikeon.com
+```
