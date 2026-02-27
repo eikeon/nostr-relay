@@ -45,7 +45,7 @@
     "@effect/eslint-plugin": "^0.3.2",
     "@eslint/js": "^10.0.1",
     "@types/aws-lambda": "^8.10.160",
-    "@types/node": "^24.10.14",
+    "@types/node": "^25.3.2",
     "aws-cdk": "^2.1107.0",
     "esbuild": "^0.27.3",
     "eslint": "^10.0.2",
