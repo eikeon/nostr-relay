@@ -103,12 +103,7 @@ export class NostrRelayStack extends cdk.Stack {
       const nip11Contact = (this.node.tryGetContext("nip11Contact") as string | undefined) ?? "https://learn.eikeon.com"
       const nip11SupportedNips = (this.node.tryGetContext("nip11SupportedNips") as number[] | undefined) ?? [
         1,
-        9,
         11,
-        15,
-        20,
-        25,
-        40,
         42,
       ]
 
@@ -124,7 +119,7 @@ export class NostrRelayStack extends cdk.Stack {
         ...(nip11Pubkey && { pubkey: nip11Pubkey }),
         contact: nip11Contact,
         supported_nips: nip11SupportedNips,
-        software: "https://github.com/eikeon/nostr-relay",
+        software: "@eikeon/nostr-relay",
         version: nip11Version,
       })
 
@@ -132,6 +127,8 @@ export class NostrRelayStack extends cdk.Stack {
         code: cloudfront.FunctionCode.fromInline(`
 function handler(event) {
   var req = event.request;
+  var upgrade = (req.headers && req.headers.upgrade && req.headers.upgrade.value) ? req.headers.upgrade.value.toLowerCase() : '';
+  if (upgrade === 'websocket') return req;
   var accept = (req.headers && req.headers.accept && req.headers.accept.value) ? req.headers.accept.value : '';
   if (accept.indexOf('application/nostr+json') !== -1) {
     return {
