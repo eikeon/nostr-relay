@@ -1,14 +1,21 @@
 import * as cdk from "aws-cdk-lib"
 import { Duration } from "aws-cdk-lib"
-import { ApiMapping, DomainName, WebSocketApi, WebSocketStage } from "aws-cdk-lib/aws-apigatewayv2"
+import { WebSocketApi, WebSocketStage } from "aws-cdk-lib/aws-apigatewayv2"
 import { WebSocketLambdaIntegration } from "aws-cdk-lib/aws-apigatewayv2-integrations"
 import * as acm from "aws-cdk-lib/aws-certificatemanager"
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront"
+import * as cloudfrontOrigins from "aws-cdk-lib/aws-cloudfront-origins"
 import { AttributeType, BillingMode, ProjectionType, Table } from "aws-cdk-lib/aws-dynamodb"
 import { Runtime } from "aws-cdk-lib/aws-lambda"
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs"
 import * as route53 from "aws-cdk-lib/aws-route53"
 import * as route53_targets from "aws-cdk-lib/aws-route53-targets"
 import type { Construct } from "constructs"
+import { readFileSync } from "fs"
+import { dirname, join } from "path"
+import { fileURLToPath } from "url"
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
 
 export class NostrRelayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -73,7 +80,7 @@ export class NostrRelayStack extends cdk.Stack {
     })
     wsApi.grantManageConnections(defaultFn)
 
-    const prodStage = new WebSocketStage(this, "ProdStage", {
+    const _prodStage = new WebSocketStage(this, "ProdStage", {
       webSocketApi: wsApi,
       stageName: "prod",
       autoDeploy: true,
@@ -86,15 +93,78 @@ export class NostrRelayStack extends cdk.Stack {
     const hostedZoneDomain = this.node.tryGetContext("hostedZoneDomain") as string | undefined
 
     if (domainName && certificateArn && hostedZoneDomain) {
-      const domain = new DomainName(this, "Domain", {
-        domainName,
-        certificate: acm.Certificate.fromCertificateArn(this, "Cert", certificateArn),
+      const nip11Name = (this.node.tryGetContext("nip11Name") as string | undefined) ?? "eikeon Learn Relay"
+      const nip11Description = (this.node.tryGetContext("nip11Description") as string | undefined) ??
+        "Interactive vocabulary exercises & multi-learner sessions on Nostr. Visit https://learn.eikeon.com"
+      const nip11Icon = (this.node.tryGetContext("nip11Icon") as string | undefined) ??
+        "https://learn.eikeon.com/favicon.ico"
+      const nip11Banner = this.node.tryGetContext("nip11Banner") as string | undefined
+      const nip11Pubkey = this.node.tryGetContext("nip11Pubkey") as string | undefined
+      const nip11Contact = (this.node.tryGetContext("nip11Contact") as string | undefined) ?? "https://learn.eikeon.com"
+      const nip11SupportedNips = (this.node.tryGetContext("nip11SupportedNips") as number[] | undefined) ?? [
+        1,
+        9,
+        11,
+        15,
+        20,
+        25,
+        40,
+        42,
+      ]
+
+      const pkgPath = join(__dirname, "../../package.json")
+      const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as { version?: string }
+      const nip11Version = pkg.version ?? "2.0.0"
+
+      const nip11Json = JSON.stringify({
+        name: nip11Name,
+        description: nip11Description,
+        icon: nip11Icon,
+        ...(nip11Banner && { banner: nip11Banner }),
+        ...(nip11Pubkey && { pubkey: nip11Pubkey }),
+        contact: nip11Contact,
+        supported_nips: nip11SupportedNips,
+        software: "https://github.com/eikeon/nostr-relay",
+        version: nip11Version,
       })
 
-      new ApiMapping(this, "Mapping", {
-        api: wsApi,
-        domainName: domain,
-        stage: prodStage,
+      const nip11Function = new cloudfront.Function(this, "Nip11Function", {
+        code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var req = event.request;
+  var accept = (req.headers && req.headers.accept && req.headers.accept.value) ? req.headers.accept.value : '';
+  if (accept.indexOf('application/nostr+json') !== -1) {
+    return {
+      statusCode: 200,
+      statusDescription: 'OK',
+      headers: {
+        'content-type': { value: 'application/json' },
+        'access-control-allow-origin': { value: '*' },
+        'cache-control': { value: 'public, max-age=3600' }
+      },
+      body: ${JSON.stringify(nip11Json)}
+    };
+  }
+  return req;
+}
+`),
+      })
+
+      const originDomain = `${wsApi.apiId}.execute-api.${this.region}.amazonaws.com`
+      const distribution = new cloudfront.Distribution(this, "RelayDistribution", {
+        defaultBehavior: {
+          origin: new cloudfrontOrigins.HttpOrigin(originDomain, { originPath: "/prod" }),
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          functionAssociations: [
+            {
+              function: nip11Function,
+              eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
+        },
+        domainNames: [domainName],
+        certificate: acm.Certificate.fromCertificateArn(this, "Cert", certificateArn),
       })
 
       const zone = route53.HostedZone.fromLookup(this, "Zone", { domainName: hostedZoneDomain })
@@ -102,9 +172,7 @@ export class NostrRelayStack extends cdk.Stack {
       new route53.ARecord(this, "AliasRecord", {
         zone,
         recordName: recordName || undefined,
-        target: route53.RecordTarget.fromAlias(
-          new route53_targets.ApiGatewayv2DomainProperties(domain.regionalDomainName, domain.regionalHostedZoneId),
-        ),
+        target: route53.RecordTarget.fromAlias(new route53_targets.CloudFrontTarget(distribution)),
       })
 
       new cdk.CfnOutput(this, "WebSocketCustomUrl", {
@@ -112,7 +180,7 @@ export class NostrRelayStack extends cdk.Stack {
         description: "WebSocket URL via custom domain",
       })
 
-      const executeApiEndpoint = `https://${wsApi.apiId}.execute-api.${this.region}.amazonaws.com/prod`
+      const executeApiEndpoint = `https://${originDomain}/prod`
       defaultFn.addEnvironment("RELAY_WEBSOCKET_EXECUTE_API_ENDPOINT", executeApiEndpoint)
     }
   }
