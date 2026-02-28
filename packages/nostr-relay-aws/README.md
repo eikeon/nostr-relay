@@ -34,11 +34,20 @@ pnpm cdk deploy -c domainName=relay.eikeon.com \
   -c nip11Name="eikeon Learn Relay" \
   -c nip11Description="Interactive vocabulary exercises & multi-learner sessions on Nostr. Visit https://learn.eikeon.com" \
   -c nip11Icon="https://learn.eikeon.com/favicon.ico" \
+  -c nip11Pubkey="npub1..." \
   -c nip11Contact="https://learn.eikeon.com"
 ```
+
+`nip11Pubkey` accepts npub (auto-converted to hex per NIP-11) or 64-char hex.
 
 Test NIP-11:
 
 ```bash
+# NIP-11 via GET
 curl -H "Accept: application/nostr+json" https://relay.eikeon.com
+
+# CORS preflight (OPTIONS)
+curl -X OPTIONS -H "Origin: https://example.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: Accept" -i https://relay.eikeon.com
 ```
+
+Expected: OPTIONS returns 204 with CORS headers; GET returns 200 with JSON.

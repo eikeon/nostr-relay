@@ -66,12 +66,23 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
       getEvents: () =>
         Effect.promise(async () => {
           try {
-            const res = await docClient.send(
-              new ScanCommand({ TableName: eventsTable }),
-            )
-            return new Map(
-              res.Items?.map((e) => [e.id, e as NostrEvent]) ?? [],
-            ) as Map<string, NostrEvent>
+            const allItems: NostrEvent[] = []
+            let lastKey: Record<string, unknown> | undefined
+            do {
+              const res = await docClient.send(
+                new ScanCommand({
+                  TableName: eventsTable,
+                  ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
+                }),
+              )
+              const items = (res.Items ?? []) as NostrEvent[]
+              allItems.push(...items)
+              lastKey = res.LastEvaluatedKey as Record<string, unknown> | undefined
+            } while (lastKey)
+
+            const map = new Map<string, NostrEvent>(allItems.map((e) => [e.id, e]))
+            console.log("[relay] getEvents", { total: map.size, kinds: [...new Set(allItems.map((e) => e.kind))] })
+            return map
           } catch (err) {
             console.error("getEvents failed", { error: err })
             return new Map<string, NostrEvent>()
