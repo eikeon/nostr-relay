@@ -12,10 +12,20 @@ import * as route53 from "aws-cdk-lib/aws-route53"
 import * as route53_targets from "aws-cdk-lib/aws-route53-targets"
 import type { Construct } from "constructs"
 import { readFileSync } from "fs"
+import { decode } from "nostr-tools/nip19"
 import { dirname, join } from "path"
 import { fileURLToPath } from "url"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+/** NIP-11 requires pubkey as 32-byte hex (64 lowercase hex chars). Converts npub to hex if needed. */
+function nip11PubkeyToHex(value: string): string {
+  if (value.startsWith("npub1")) {
+    const decoded = decode(value)
+    if (decoded.type === "npub") return decoded.data
+  }
+  return value
+}
 
 export class NostrRelayStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -116,10 +126,10 @@ export class NostrRelayStack extends cdk.Stack {
         description: nip11Description,
         icon: nip11Icon,
         ...(nip11Banner && { banner: nip11Banner }),
-        ...(nip11Pubkey && { pubkey: nip11Pubkey }),
+        ...(nip11Pubkey && { pubkey: nip11PubkeyToHex(nip11Pubkey) }),
         contact: nip11Contact,
         supported_nips: nip11SupportedNips,
-        software: "@eikeon/nostr-relay",
+        software: "https://github.com/eikeon/nostr-relay/tree/main/packages/nostr-relay-aws",
         version: nip11Version,
       })
 
@@ -127,6 +137,19 @@ export class NostrRelayStack extends cdk.Stack {
         code: cloudfront.FunctionCode.fromInline(`
 function handler(event) {
   var req = event.request;
+  if (req.method === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      statusDescription: 'No Content',
+      headers: {
+        'access-control-allow-origin': { value: '*' },
+        'access-control-allow-methods': { value: 'GET, OPTIONS' },
+        'access-control-allow-headers': { value: 'Accept, Content-Type' },
+        'access-control-max-age': { value: '86400' }
+      },
+      body: ''
+    };
+  }
   var upgrade = (req.headers && req.headers.upgrade && req.headers.upgrade.value) ? req.headers.upgrade.value.toLowerCase() : '';
   if (upgrade === 'websocket') return req;
   var accept = (req.headers && req.headers.accept && req.headers.accept.value) ? req.headers.accept.value : '';
@@ -159,6 +182,7 @@ function handler(event) {
         httpVersion: cloudfront.HttpVersion.HTTP1_1,
         defaultBehavior: {
           origin: new cloudfrontOrigins.HttpOrigin(originDomain, { originPath: "/prod" }),
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
           cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
           originRequestPolicy: relayOriginPolicy,
