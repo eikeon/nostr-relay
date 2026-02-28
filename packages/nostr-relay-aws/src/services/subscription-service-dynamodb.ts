@@ -75,9 +75,7 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
         Effect.gen(function*() {
           const allEvents = yield* store.getEvents()
           const filtersArr = Array.isArray(filters) ? filters : [filters]
-          const evs = Array.from(allEvents.values()).filter((e) =>
-            matchesFilter(e, filtersArr)
-          )
+          const evs = Array.from(allEvents.values()).filter((e) => matchesFilter(e, filtersArr))
           evs.sort((a, b) => b.created_at - a.created_at)
           const result = evs.slice(0, limit)
           console.log("[relay] getHistoricalEvents", {
