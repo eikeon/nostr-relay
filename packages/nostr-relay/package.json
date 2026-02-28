@@ -1,6 +1,6 @@
 {
   "name": "@eikeon/nostr-relay",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "type": "module",
   "license": "MIT",
   "description": "NIP-01 NOSTR relay - WebSocket server built with Effect v4",
