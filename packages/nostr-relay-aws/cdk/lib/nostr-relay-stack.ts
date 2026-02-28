@@ -65,7 +65,7 @@ export class NostrRelayStack extends cdk.Stack {
         RELAY_CREATED_AT_WINDOW_SEC: process.env.RELAY_CREATED_AT_WINDOW_SEC ?? "900",
       },
       timeout: Duration.seconds(30),
-      memorySize: 512,
+      memorySize: 1024,
     })
     ;[eventsTable, subsTable].forEach((t) => t.grantReadWriteData(defaultFn))
     subsTable.grantReadWriteData(connectFn)
