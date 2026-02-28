@@ -130,7 +130,8 @@ function handler(event) {
   var upgrade = (req.headers && req.headers.upgrade && req.headers.upgrade.value) ? req.headers.upgrade.value.toLowerCase() : '';
   if (upgrade === 'websocket') return req;
   var accept = (req.headers && req.headers.accept && req.headers.accept.value) ? req.headers.accept.value : '';
-  if (accept.indexOf('application/nostr+json') !== -1) {
+  // More permissive: accept both application/nostr and application/nostr+json for compatibility
+  if (accept.indexOf('application/nostr') !== -1) {
     return {
       statusCode: 200,
       statusDescription: 'OK',
