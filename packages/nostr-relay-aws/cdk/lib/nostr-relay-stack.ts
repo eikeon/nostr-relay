@@ -135,7 +135,7 @@ function handler(event) {
       statusCode: 200,
       statusDescription: 'OK',
       headers: {
-        'content-type': { value: 'application/json' },
+        'content-type': { value: 'application/nostr+json' },
         'access-control-allow-origin': { value: '*' },
         'cache-control': { value: 'public, max-age=3600' }
       },
