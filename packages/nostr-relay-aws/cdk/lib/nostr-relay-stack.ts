@@ -58,6 +58,14 @@ export class NostrRelayStack extends cdk.Stack {
       timeToLiveAttribute: "ttl",
     })
 
+    const subsKindIndexTable = new Table(this, "SubscriptionKindIndexTable", {
+      partitionKey: { name: "kind", type: AttributeType.NUMBER },
+      sortKey: { name: "connectionIdSubId", type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "ttl",
+    })
+
     const connectFn = new NodejsFunction(this, "ConnectFn", {
       entry: "src/handlers/connect.ts",
       runtime: Runtime.NODEJS_24_X,
@@ -67,7 +75,10 @@ export class NostrRelayStack extends cdk.Stack {
     const disconnectFn = new NodejsFunction(this, "DisconnectFn", {
       entry: "src/handlers/disconnect.ts",
       runtime: Runtime.NODEJS_24_X,
-      environment: { SUBS_TABLE: subsTable.tableName },
+      environment: {
+        SUBS_TABLE: subsTable.tableName,
+        SUBS_KIND_INDEX_TABLE: subsKindIndexTable.tableName,
+      },
       timeout: Duration.seconds(10),
     })
     const defaultFn = new NodejsFunction(this, "DefaultFn", {
@@ -76,6 +87,7 @@ export class NostrRelayStack extends cdk.Stack {
       environment: {
         EVENTS_TABLE: eventsTable.tableName,
         SUBS_TABLE: subsTable.tableName,
+        SUBS_KIND_INDEX_TABLE: subsKindIndexTable.tableName,
         RELAY_REQUIRE_AUTH: "false",
         RELAY_BANNED_PUBKEYS: process.env.RELAY_BANNED_PUBKEYS ?? "",
         RELAY_CREATED_AT_WINDOW_SEC: process.env.RELAY_CREATED_AT_WINDOW_SEC ?? "900",
@@ -83,9 +95,10 @@ export class NostrRelayStack extends cdk.Stack {
       timeout: Duration.seconds(60),
       memorySize: 1024,
     })
-    ;[eventsTable, subsTable].forEach((t) => t.grantReadWriteData(defaultFn))
+    ;[eventsTable, subsTable, subsKindIndexTable].forEach((t) => t.grantReadWriteData(defaultFn))
     subsTable.grantReadWriteData(connectFn)
     subsTable.grantReadWriteData(disconnectFn)
+    subsKindIndexTable.grantReadWriteData(disconnectFn)
 
     const wsApi = new WebSocketApi(this, "NostrRelayApi", {
       connectRouteOptions: { integration: new WebSocketLambdaIntegration("Connect", connectFn) },

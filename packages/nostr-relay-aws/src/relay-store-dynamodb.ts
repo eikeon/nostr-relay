@@ -17,6 +17,7 @@ const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}))
 export interface DynamoConfig {
   readonly eventsTable: string
   readonly subsTable: string
+  readonly subsKindIndexTable: string
 }
 
 export class DynamoConfigService extends ServiceMap.Service<DynamoConfigService, DynamoConfig>()("DynamoConfig") {}
@@ -24,6 +25,7 @@ export class DynamoConfigService extends ServiceMap.Service<DynamoConfigService,
 export const DynamoConfigLive = Layer.succeed(DynamoConfigService, {
   eventsTable: process.env.EVENTS_TABLE ?? "EventsTable",
   subsTable: process.env.SUBS_TABLE ?? "SubscriptionsTable",
+  subsKindIndexTable: process.env.SUBS_KIND_INDEX_TABLE ?? "SubscriptionKindIndexTable",
 })
 
 /** RelayStore DynamoDB implementation - for Lambda/serverless. Subs managed via connect/disconnect handlers. */

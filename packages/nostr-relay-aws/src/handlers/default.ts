@@ -47,19 +47,36 @@ function getBannedPubkeys(): Set<string> {
 
 const createdAtWindowSec = Number(process.env.RELAY_CREATED_AT_WINDOW_SEC ?? "900")
 
-function sendToConnection(endpoint: string, connectionId: string, msg: unknown): Effect.Effect<void> {
+const RETRYABLE_ERROR_CODES = new Set(["EBUSY", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EAI_AGAIN"])
+const MAX_SEND_RETRIES = 3
+const RETRY_DELAY_MS = 50
+
+function sendToConnection(
+  client: ApiGatewayManagementApiClient,
+  connectionId: string,
+  msg: unknown,
+): Effect.Effect<void> {
   return Effect.promise(async () => {
-    const client = new ApiGatewayManagementApiClient({ endpoint })
     const data = JSON.stringify(msg)
-    try {
-      await client.send(
-        new PostToConnectionCommand({ ConnectionId: connectionId, Data: data }),
-      )
-    } catch (err) {
-      if (err instanceof GoneException) {
-        logger.debug("PostToConnection failed: connection gone", { connectionId, msg })
-      } else {
+    for (let attempt = 1; attempt <= MAX_SEND_RETRIES; attempt++) {
+      try {
+        await client.send(
+          new PostToConnectionCommand({ ConnectionId: connectionId, Data: data }),
+        )
+        return
+      } catch (err) {
+        if (err instanceof GoneException) {
+          logger.debug("PostToConnection failed: connection gone", { connectionId, msg })
+          return
+        }
+        const code = (err as NodeJS.ErrnoException)?.code ?? (err as { code?: string })?.code
+        const isRetryable = code && RETRYABLE_ERROR_CODES.has(code)
+        if (isRetryable && attempt < MAX_SEND_RETRIES) {
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt))
+          continue
+        }
         logger.error("PostToConnection failed", { connectionId, msg, error: err })
+        return
       }
     }
   })
@@ -95,8 +112,8 @@ function getConnectionAuth(
 }
 
 function handleMessage(
+  apiClient: ApiGatewayManagementApiClient,
   connectionId: string,
-  endpoint: string,
   domainName: string,
   type: string,
   args: unknown[],
@@ -104,12 +121,13 @@ function handleMessage(
 ): Effect.Effect<void, unknown, RelayStore | SubscriptionService> {
   const requireAuth = process.env.RELAY_REQUIRE_AUTH === "true"
   const isAuthed = !!authState?.authenticatedPubkey
+  const send = (connId: string, msg: unknown) => sendToConnection(apiClient, connId, msg)
 
   return Effect.gen(function*() {
     const store = yield* RelayStore
     const subs = yield* SubscriptionService
     if (requireAuth && !isAuthed && type !== "AUTH") {
-      yield* sendToConnection(endpoint, connectionId, [
+      yield* send(connectionId, [
         "CLOSED",
         args[0] ?? "sub",
         "auth-required: authentication required",
@@ -121,7 +139,7 @@ function handleMessage(
       case "EVENT": {
         const eventId = getEventId(args[0])
         const sendOk = (accepted: boolean, reason: string) =>
-          sendToConnection(endpoint, connectionId, ["OK", eventId, accepted, reason])
+          send(connectionId, ["OK", eventId, accepted, reason])
 
         const evExit = yield* Effect.sync(() => decodeEvent(args[0]) as NostrEvent).pipe(Effect.exit)
         if (Exit.isFailure(evExit)) {
@@ -156,7 +174,7 @@ function handleMessage(
             if (m.send) {
               yield* m.send(["EVENT", m.subId, ev])
             } else {
-              yield* sendToConnection(endpoint, m.connKey, ["EVENT", m.subId, ev])
+              yield* send(m.connKey, ["EVENT", m.subId, ev])
             }
           }
         }
@@ -166,11 +184,11 @@ function handleMessage(
       case "REQ": {
         const subId = typeof args[0] === "string" ? args[0] : undefined
         if (!subId || subId.length === 0) {
-          yield* sendToConnection(endpoint, connectionId, ["NOTICE", "invalid: subscription_id required"])
+          yield* send(connectionId, ["NOTICE", "invalid: subscription_id required"])
           return
         }
         if (subId.length > 64) {
-          yield* sendToConnection(endpoint, connectionId, ["NOTICE", "invalid: subscription_id max 64 chars"])
+          yield* send(connectionId, ["NOTICE", "invalid: subscription_id max 64 chars"])
           return
         }
 
@@ -181,15 +199,15 @@ function handleMessage(
 
         const filterError = validateFilters(filters)
         if (filterError) {
-          yield* sendToConnection(endpoint, connectionId, ["NOTICE", filterError])
+          yield* send(connectionId, ["NOTICE", filterError])
           return
         }
 
         const historical = yield* subs.getHistoricalEvents(filters, getEffectiveLimit(filters))
         for (const ev of historical) {
-          yield* sendToConnection(endpoint, connectionId, ["EVENT", subId, ev])
+          yield* send(connectionId, ["EVENT", subId, ev])
         }
-        yield* sendToConnection(endpoint, connectionId, ["EOSE", subId])
+        yield* send(connectionId, ["EOSE", subId])
 
         yield* subs.addSub(
           connectionId,
@@ -223,7 +241,7 @@ function handleMessage(
           !hasChallenge ||
           !hasRelay
         ) {
-          yield* sendToConnection(endpoint, connectionId, [
+          yield* send(connectionId, [
             "OK",
             authEvent.id ?? "",
             false,
@@ -247,12 +265,12 @@ function handleMessage(
             }),
           )
         })
-        yield* sendToConnection(endpoint, connectionId, ["OK", authEvent.id ?? "", true, ""])
+        yield* send(connectionId, ["OK", authEvent.id ?? "", true, ""])
         break
       }
 
       default:
-        yield* sendToConnection(endpoint, connectionId, ["NOTICE", "Unknown message type"])
+        yield* send(connectionId, ["NOTICE", "Unknown message type"])
     }
   })
 }
@@ -265,18 +283,19 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2) => {
   const endpoint = isExecuteApi
     ? `https://${domain}/${stage}`
     : (process.env.RELAY_WEBSOCKET_EXECUTE_API_ENDPOINT ?? `https://${domain}`)
+  const apiClient = new ApiGatewayManagementApiClient({ endpoint })
 
   let msg: unknown[]
   try {
     msg = JSON.parse(event.body ?? "[]")
   } catch (err) {
     logger.error("Invalid JSON in message", { body: event.body, error: err })
-    await Effect.runPromise(sendToConnection(endpoint, connectionId, ["NOTICE", "Invalid JSON"]))
+    await Effect.runPromise(sendToConnection(apiClient, connectionId, ["NOTICE", "Invalid JSON"]))
     return { statusCode: 200 }
   }
 
   if (!Array.isArray(msg) || msg.length === 0) {
-    await Effect.runPromise(sendToConnection(endpoint, connectionId, ["NOTICE", "Invalid message"]))
+    await Effect.runPromise(sendToConnection(apiClient, connectionId, ["NOTICE", "Invalid message"]))
     return { statusCode: 200 }
   }
 
@@ -286,7 +305,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2) => {
   const authState = await Effect.runPromise(getConnectionAuth(connectionId))
 
   const domainName = event.requestContext.domainName
-  const program = handleMessage(connectionId, endpoint, domainName, type, args, authState)
+  const program = handleMessage(apiClient, connectionId, domainName, type, args, authState)
   await runWithStoreAndSubs(program)
 
   return { statusCode: 200 }
