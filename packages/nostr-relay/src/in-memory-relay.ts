@@ -8,7 +8,7 @@ import { Cause, ConfigProvider, Data, Effect, Layer, Logger, Ref, Schema } from 
 import { DevTools } from "effect/unstable/devtools"
 import { CloseEvent, type Socket } from "effect/unstable/socket/Socket"
 import { verifyEvent } from "nostr-tools/pure"
-import { validateFilters } from "./filter.js"
+import { getEffectiveLimit, validateFilters } from "./filter.js"
 import { RelayStoreLive } from "./relay-store-memory.js"
 import { NostrEventSchema, type NostrFilter, parseFilter } from "./schema.js"
 import {
@@ -203,7 +203,7 @@ function handleNostrConnection(
               return next
             })
 
-            const historical = yield* subs.getHistoricalEvents(filters_)
+            const historical = yield* subs.getHistoricalEvents(filters_, getEffectiveLimit(filters_))
             for (const ev of historical) {
               yield* send(["EVENT", subId, ev])
             }

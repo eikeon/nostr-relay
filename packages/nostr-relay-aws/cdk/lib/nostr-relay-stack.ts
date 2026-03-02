@@ -43,10 +43,30 @@ export class NostrRelayStack extends cdk.Stack {
       sortKey: { name: "created_at", type: AttributeType.NUMBER },
       projectionType: ProjectionType.ALL,
     })
+    eventsTable.addGlobalSecondaryIndex({
+      indexName: "kind-created_at-index",
+      partitionKey: { name: "kind", type: AttributeType.NUMBER },
+      sortKey: { name: "created_at", type: AttributeType.NUMBER },
+      projectionType: ProjectionType.ALL,
+    })
+    eventsTable.addGlobalSecondaryIndex({
+      indexName: "time_pk-created_at-index",
+      partitionKey: { name: "time_pk", type: AttributeType.STRING },
+      sortKey: { name: "created_at", type: AttributeType.NUMBER },
+      projectionType: ProjectionType.ALL,
+    })
 
     const subsTable = new Table(this, "SubscriptionsTable", {
       partitionKey: { name: "connectionId", type: AttributeType.STRING },
       sortKey: { name: "subId", type: AttributeType.STRING },
+      billingMode: BillingMode.PAY_PER_REQUEST,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: "ttl",
+    })
+
+    const subsKindIndexTable = new Table(this, "SubscriptionKindIndexTable", {
+      partitionKey: { name: "kind", type: AttributeType.NUMBER },
+      sortKey: { name: "connectionIdSubId", type: AttributeType.STRING },
       billingMode: BillingMode.PAY_PER_REQUEST,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: "ttl",
@@ -61,7 +81,10 @@ export class NostrRelayStack extends cdk.Stack {
     const disconnectFn = new NodejsFunction(this, "DisconnectFn", {
       entry: "src/handlers/disconnect.ts",
       runtime: Runtime.NODEJS_24_X,
-      environment: { SUBS_TABLE: subsTable.tableName },
+      environment: {
+        SUBS_TABLE: subsTable.tableName,
+        SUBS_KIND_INDEX_TABLE: subsKindIndexTable.tableName,
+      },
       timeout: Duration.seconds(10),
     })
     const defaultFn = new NodejsFunction(this, "DefaultFn", {
@@ -70,16 +93,18 @@ export class NostrRelayStack extends cdk.Stack {
       environment: {
         EVENTS_TABLE: eventsTable.tableName,
         SUBS_TABLE: subsTable.tableName,
+        SUBS_KIND_INDEX_TABLE: subsKindIndexTable.tableName,
         RELAY_REQUIRE_AUTH: "false",
         RELAY_BANNED_PUBKEYS: process.env.RELAY_BANNED_PUBKEYS ?? "",
         RELAY_CREATED_AT_WINDOW_SEC: process.env.RELAY_CREATED_AT_WINDOW_SEC ?? "900",
       },
-      timeout: Duration.seconds(30),
+      timeout: Duration.seconds(60),
       memorySize: 1024,
     })
-    ;[eventsTable, subsTable].forEach((t) => t.grantReadWriteData(defaultFn))
+    ;[eventsTable, subsTable, subsKindIndexTable].forEach((t) => t.grantReadWriteData(defaultFn))
     subsTable.grantReadWriteData(connectFn)
     subsTable.grantReadWriteData(disconnectFn)
+    subsKindIndexTable.grantReadWriteData(disconnectFn)
 
     const wsApi = new WebSocketApi(this, "NostrRelayApi", {
       connectRouteOptions: { integration: new WebSocketLambdaIntegration("Connect", connectFn) },
@@ -115,6 +140,7 @@ export class NostrRelayStack extends cdk.Stack {
         1,
         11,
         42,
+        46,
       ]
 
       const pkgPath = join(__dirname, "../../package.json")

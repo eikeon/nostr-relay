@@ -27,6 +27,7 @@
     "cdk": "cdk",
     "cdk:bootstrap": "cdk bootstrap",
     "cdk:deploy": "cdk deploy --all",
+    "backfill:time-pk": "tsx scripts/backfill-time-pk.ts",
     "lint": "eslint \"src/**/*.ts\" \"cdk/**/*.ts\" && tsc --noEmit",
     "lint:fix": "eslint \"src/**/*.ts\" \"cdk/**/*.ts\" --fix"
   },

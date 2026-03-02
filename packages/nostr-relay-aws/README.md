@@ -51,3 +51,11 @@ curl -X OPTIONS -H "Origin: https://example.com" -H "Access-Control-Request-Meth
 ```
 
 Expected: OPTIONS returns 204 with CORS headers; GET returns 200 with JSON.
+
+## Backfilling time_pk GSI
+
+If you had existing events before adding the `time_pk-created_at-index` GSI, run the backfill script once to add the `time_pk` attribute so they appear in the index:
+
+```bash
+EVENTS_TABLE=YourEventsTable npx tsx scripts/backfill-time-pk.ts
+```

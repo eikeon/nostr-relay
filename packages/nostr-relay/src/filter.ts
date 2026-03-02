@@ -55,6 +55,12 @@ export function isValidHex64Array(arr: readonly string[] | undefined): boolean {
   return arr.every((s) => HEX64.test(s))
 }
 
+export function getEffectiveLimit(filters: NostrFilter[]): number {
+  const limits = filters.map((f) => f.limit).filter((n): n is number => typeof n === "number")
+  if (limits.length === 0) return 100
+  return Math.max(...limits)
+}
+
 export function validateFilters(filters: NostrFilter[]): string | null {
   for (const f of filters) {
     if (!isValidHex64Array(f.ids)) return "invalid: ids must be 64-char lowercase hex"
