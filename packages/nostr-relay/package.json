@@ -66,14 +66,14 @@
     "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "dependencies": {
-    "@effect/platform-node": "4.0.0-beta.17",
-    "effect": "4.0.0-beta.17",
+    "@effect/platform-node": "4.0.0-beta.23",
+    "effect": "4.0.0-beta.23",
     "nostr-tools": "^2.23.1"
   },
   "devDependencies": {
     "@effect/eslint-plugin": "^0.3.2",
-    "@effect/language-service": "^0.75.1",
-    "@effect/vitest": "4.0.0-beta.15",
+    "@effect/language-service": "^0.77.0",
+    "@effect/vitest": "4.0.0-beta.23",
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.10.14",
     "eslint": "^10.0.2",
