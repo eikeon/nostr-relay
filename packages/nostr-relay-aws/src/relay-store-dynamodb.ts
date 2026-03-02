@@ -53,7 +53,7 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
 
             const putParams = {
               TableName: eventsTable,
-              Item: { ...event },
+              Item: { ...event, time_pk: "event" },
               ...(isReplaceable(event.kind) || isAddressable(event.kind)
                 ? {
                   ConditionExpression: "attribute_not_exists(id) OR created_at < :newTime",
@@ -114,6 +114,12 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
               f.authors.length > 0 &&
               (!f.ids || f.ids.length === 0),
           )
+          const canUseTimeIndex = filtersArr.every(
+            (f) =>
+              (!f.authors || f.authors.length === 0) &&
+              (!f.ids || f.ids.length === 0) &&
+              (!f.kinds || f.kinds.length === 0),
+          ) && filtersArr.some((f) => f.since !== undefined || f.until !== undefined)
 
           if (canUseAuthorIndex) {
             const authors = [...new Set(filtersArr.flatMap((f) => f.authors ?? []))]
@@ -157,6 +163,38 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
               return result
             } catch (err) {
               logger.error("getEventsByFilter Query (pubkey) failed", { error: err })
+              return []
+            }
+          }
+
+          if (canUseTimeIndex) {
+            const since = filtersArr.map((f) => f.since).filter((s): s is number => s !== undefined)
+            const until = filtersArr.map((f) => f.until).filter((u): u is number => u !== undefined)
+            const minSince = since.length > 0 ? Math.max(...since) : 0
+            const maxUntil = until.length > 0 ? Math.min(...until) : Math.floor(Date.now() / 1000)
+            try {
+              const res = await docClient.send(
+                new QueryCommand({
+                  TableName: eventsTable,
+                  IndexName: "time_pk-created_at-index",
+                  KeyConditionExpression: "time_pk = :pk AND created_at BETWEEN :lo AND :hi",
+                  ExpressionAttributeValues: { ":pk": "event", ":lo": minSince, ":hi": maxUntil },
+                  ScanIndexForward: false,
+                  Limit: limit,
+                }),
+              )
+              const allItems = (res.Items ?? []) as NostrEvent[]
+              const evs = allItems.filter((e) => matchesFilter(e, filtersArr))
+              evs.sort((a, b) => b.created_at - a.created_at)
+              const result = evs.slice(0, limit)
+              logger.info("getEventsByFilter", {
+                index: "time_pk-created_at",
+                totalQueried: allItems.length,
+                returning: result.length,
+              })
+              return result
+            } catch (err) {
+              logger.error("getEventsByFilter Query (time) failed", { error: err })
               return []
             }
           }

@@ -49,6 +49,12 @@ export class NostrRelayStack extends cdk.Stack {
       sortKey: { name: "created_at", type: AttributeType.NUMBER },
       projectionType: ProjectionType.ALL,
     })
+    eventsTable.addGlobalSecondaryIndex({
+      indexName: "time_pk-created_at-index",
+      partitionKey: { name: "time_pk", type: AttributeType.STRING },
+      sortKey: { name: "created_at", type: AttributeType.NUMBER },
+      projectionType: ProjectionType.ALL,
+    })
 
     const subsTable = new Table(this, "SubscriptionsTable", {
       partitionKey: { name: "connectionId", type: AttributeType.STRING },
