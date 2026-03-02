@@ -20,6 +20,16 @@ const logger = new Logger({ serviceName: "nostr-relay" })
 const dynamo = new DynamoDBClient({})
 const docClient = DynamoDBDocumentClient.from(dynamo)
 
+const apiClientCache = new Map<string, ApiGatewayManagementApiClient>()
+function getApiClient(endpoint: string): ApiGatewayManagementApiClient {
+  let client = apiClientCache.get(endpoint)
+  if (!client) {
+    client = new ApiGatewayManagementApiClient({ endpoint })
+    apiClientCache.set(endpoint, client)
+  }
+  return client
+}
+
 const dynamoRelayLayer = Layer.mergeAll(RelayStoreDynamoLive, SubscriptionServiceDynamoLive)
 
 const runWithStoreAndSubs = (
@@ -278,7 +288,7 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2) => {
   const endpoint = isExecuteApi
     ? `https://${domain}/${stage}`
     : (process.env.RELAY_WEBSOCKET_EXECUTE_API_ENDPOINT ?? `https://${domain}`)
-  const apiClient = new ApiGatewayManagementApiClient({ endpoint })
+  const apiClient = getApiClient(endpoint)
 
   let msg: unknown[]
   try {
