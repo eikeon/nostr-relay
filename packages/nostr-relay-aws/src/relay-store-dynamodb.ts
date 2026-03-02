@@ -106,6 +106,60 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
               (!f.authors || f.authors.length === 0) &&
               (!f.ids || f.ids.length === 0),
           )
+          const canUseAuthorIndex = filtersArr.every(
+            (f) =>
+              f.authors &&
+              f.authors.length > 0 &&
+              (!f.ids || f.ids.length === 0),
+          )
+
+          if (canUseAuthorIndex) {
+            const authors = [...new Set(filtersArr.flatMap((f) => f.authors ?? []))]
+            const since = filtersArr.map((f) => f.since).filter((s): s is number => s !== undefined)
+            const until = filtersArr.map((f) => f.until).filter((u): u is number => u !== undefined)
+            const minSince = since.length > 0 ? Math.max(...since) : undefined
+            const maxUntil = until.length > 0 ? Math.min(...until) : undefined
+            try {
+              const allItems: NostrEvent[] = []
+              for (const pubkey of authors) {
+                const keyCond =
+                  minSince !== undefined || maxUntil !== undefined
+                    ? "pubkey = :p AND created_at BETWEEN :lo AND :hi"
+                    : "pubkey = :p"
+                const exprValues: Record<string, string | number> = { ":p": pubkey }
+                if (minSince !== undefined) exprValues[":lo"] = minSince
+                if (maxUntil !== undefined) exprValues[":hi"] = maxUntil
+                if (minSince === undefined && maxUntil !== undefined) exprValues[":lo"] = 0
+                if (maxUntil === undefined && minSince !== undefined) exprValues[":hi"] = Math.floor(Date.now() / 1000)
+
+                const res = await docClient.send(
+                  new QueryCommand({
+                    TableName: eventsTable,
+                    IndexName: "pubkey-created_at-index",
+                    KeyConditionExpression: keyCond,
+                    ExpressionAttributeValues: exprValues,
+                    ScanIndexForward: false,
+                    Limit: limit,
+                  }),
+                )
+                allItems.push(...((res.Items ?? []) as NostrEvent[]))
+              }
+              const evs = allItems.filter((e) => matchesFilter(e, filtersArr))
+              evs.sort((a, b) => b.created_at - a.created_at)
+              const result = evs.slice(0, limit)
+              console.log("[relay] getEventsByFilter", {
+                index: "pubkey-created_at",
+                authors: authors.length,
+                totalQueried: allItems.length,
+                returning: result.length,
+              })
+              return result
+            } catch (err) {
+              console.error("getEventsByFilter Query (pubkey) failed", { error: err })
+              return []
+            }
+          }
+
           if (!canUseKindIndex) {
             try {
               const allItems: NostrEvent[] = []
@@ -128,6 +182,7 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
               return []
             }
           }
+
           const kinds = [...new Set(filtersArr.flatMap((f) => f.kinds ?? []))]
           const since = filtersArr.map((f) => f.since).filter((s): s is number => s !== undefined)
           const until = filtersArr.map((f) => f.until).filter((u): u is number => u !== undefined)
