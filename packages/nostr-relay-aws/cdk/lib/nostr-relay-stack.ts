@@ -115,6 +115,7 @@ export class NostrRelayStack extends cdk.Stack {
         1,
         11,
         42,
+        46,
       ]
 
       const pkgPath = join(__dirname, "../../package.json")

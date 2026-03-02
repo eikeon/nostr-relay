@@ -7,7 +7,7 @@ import {
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 import { HEX64 } from "@eikeon/nostr-relay/constants"
-import { validateFilters } from "@eikeon/nostr-relay/filter"
+import { getEffectiveLimit, validateFilters } from "@eikeon/nostr-relay/filter"
 import { type NostrEvent, NostrEventSchema, type NostrFilter, parseFilter } from "@eikeon/nostr-relay/schema"
 import { RelayStore, SubscriptionService } from "@eikeon/nostr-relay/services"
 import type { APIGatewayProxyWebsocketEventV2 } from "aws-lambda"
@@ -185,7 +185,7 @@ function handleMessage(
           return
         }
 
-        const historical = yield* subs.getHistoricalEvents(filters)
+        const historical = yield* subs.getHistoricalEvents(filters, getEffectiveLimit(filters))
         for (const ev of historical) {
           yield* sendToConnection(endpoint, connectionId, ["EVENT", subId, ev])
         }

@@ -47,16 +47,30 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
 
       getMatchingSubs: (event) =>
         Effect.gen(function*() {
-          const res = yield* Effect.tryPromise(() => docClient.send(new ScanCommand({ TableName: subsTable }))).pipe(
-            Effect.catch((err) =>
-              Effect.gen(function*() {
-                yield* Effect.sync(() => console.error("getMatchingSubs Scan failed", err))
-                return { Items: [] as Record<string, unknown>[] }
-              })
-            ),
-          )
+          const allItems: Record<string, unknown>[] = []
+          let lastKey: Record<string, unknown> | undefined
+          do {
+            const res = yield* Effect.tryPromise(() =>
+              docClient.send(
+                new ScanCommand({
+                  TableName: subsTable,
+                  ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
+                }),
+              ),
+            ).pipe(
+              Effect.catch((err) =>
+                Effect.gen(function*() {
+                  yield* Effect.sync(() => console.error("getMatchingSubs Scan failed", err))
+                  return { Items: [] as Record<string, unknown>[], LastEvaluatedKey: undefined }
+                }),
+              ),
+            )
+            allItems.push(...(res.Items ?? []))
+            lastKey = res.LastEvaluatedKey as Record<string, unknown> | undefined
+          } while (lastKey)
+
           const matches: SubscriptionMatch[] = []
-          for (const item of res.Items ?? []) {
+          for (const item of allItems) {
             if (!item.filter || item.subId === "__challenge") continue
             const filterOpt = yield* Effect.option(
               Effect.sync(() => Schema.decodeUnknownSync(Schema.UnknownFromJsonString)(item.filter as string)),
