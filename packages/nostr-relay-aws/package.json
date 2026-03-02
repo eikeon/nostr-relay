@@ -39,7 +39,7 @@
     "@eikeon/nostr-relay": "workspace:*",
     "aws-cdk-lib": "^2.240.0",
     "constructs": "^10.5.1",
-    "effect": "4.0.0-beta.17",
+    "effect": "4.0.0-beta.23",
     "nostr-tools": "^2.23.1"
   },
   "devDependencies": {
