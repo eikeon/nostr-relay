@@ -3,14 +3,9 @@
  * Uses SubscriptionKindIndex table to Query by event kind instead of full Scan
  */
 
+import { Logger } from "@aws-lambda-powertools/logger"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import {
-  DeleteCommand,
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-} from "@aws-sdk/lib-dynamodb"
+import { DeleteCommand, DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
 import { matchesFilter } from "@eikeon/nostr-relay/filter"
 import type { NostrFilter } from "@eikeon/nostr-relay/schema"
 import { RelayStore } from "@eikeon/nostr-relay/services"
@@ -47,6 +42,7 @@ const retryPolicy = {
   while: isThrottlingException,
 } as const
 
+const logger = new Logger({ serviceName: "nostr-relay" })
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}))
 
 const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
@@ -59,17 +55,6 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
         Effect.gen(function*() {
           const ttl = Math.floor(Date.now() / 1000) + 86400
           const filterJson = Schema.encodeUnknownSync(Schema.UnknownFromJsonString)(filters)
-          const item = {
-            connectionId: connKey,
-            subId,
-            filter: filterJson,
-            authenticatedPubkey: authenticatedPubkey ?? null,
-            ttl,
-          }
-          yield* Effect.tryPromise(() =>
-            docClient.send(new PutCommand({ TableName: subsTable, Item: item })),
-          ).pipe(Effect.asVoid, Effect.catch((err) => Effect.sync(() => console.error("addSub failed", err))))
-
           const kinds = getKindsFromFilters(filters)
           const connectionIdSubId = `${connKey}#${subId}`
           for (const kind of kinds) {
@@ -87,9 +72,33 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
                     ttl,
                   },
                 }),
+              )
+            ).pipe(
+              Effect.asVoid,
+              Effect.tapError((err) =>
+                Effect.sync(() => logger.error("addSub index failed", { connKey, subId, kind, error: err }))
               ),
-            ).pipe(Effect.asVoid, Effect.catch((err) => Effect.sync(() => console.error("addSub index failed", err))))
+              Effect.orDie,
+            )
           }
+          yield* Effect.tryPromise(() =>
+            docClient.send(
+              new PutCommand({
+                TableName: subsTable,
+                Item: {
+                  connectionId: connKey,
+                  subId,
+                  filter: filterJson,
+                  authenticatedPubkey: authenticatedPubkey ?? null,
+                  ttl,
+                },
+              }),
+            )
+          ).pipe(
+            Effect.asVoid,
+            Effect.tapError((err) => Effect.sync(() => logger.error("addSub failed", { connKey, subId, error: err }))),
+            Effect.orDie,
+          )
         }),
 
       removeSub: (connKey, subId) =>
@@ -97,11 +106,13 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
           const itemRes = yield* Effect.tryPromise(() =>
             docClient.send(
               new GetCommand({ TableName: subsTable, Key: { connectionId: connKey, subId } }),
-            ),
+            )
           ).pipe(Effect.catch(() => Effect.succeed({ Item: undefined })))
           const item = itemRes.Item
           if (item?.filter) {
-            const filters = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)(item.filter as string) as NostrFilter[]
+            const filters = Schema.decodeUnknownSync(Schema.UnknownFromJsonString)(
+              item.filter as string,
+            ) as NostrFilter[]
             const kinds = getKindsFromFilters(Array.isArray(filters) ? filters : [filters])
             const connectionIdSubId = `${connKey}#${subId}`
             for (const kind of kinds) {
@@ -111,13 +122,21 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
                     TableName: subsKindIndexTable,
                     Key: { kind, connectionIdSubId },
                   }),
+                )
+              ).pipe(
+                Effect.asVoid,
+                Effect.catch((err) =>
+                  Effect.sync(() => logger.error("removeSub index failed", { connKey, subId, kind, error: err }))
                 ),
-              ).pipe(Effect.asVoid, Effect.catch((err) => Effect.sync(() => console.error("removeSub index failed", err))))
+              )
             }
           }
           yield* Effect.tryPromise(() =>
-            docClient.send(new DeleteCommand({ TableName: subsTable, Key: { connectionId: connKey, subId } })),
-          ).pipe(Effect.asVoid, Effect.catch((err) => Effect.sync(() => console.error("removeSub failed", err))))
+            docClient.send(new DeleteCommand({ TableName: subsTable, Key: { connectionId: connKey, subId } }))
+          ).pipe(
+            Effect.asVoid,
+            Effect.catch((err) => Effect.sync(() => logger.error("removeSub failed", { connKey, subId, error: err }))),
+          )
         }),
 
       getMatchingSubs: (event) =>
@@ -137,12 +156,14 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
                     ExpressionAttributeValues: { ":k": kind },
                     ...(lastKey ? { ExclusiveStartKey: lastKey } : {}),
                   }),
-                ),
+                )
               ).pipe(
                 Effect.retry(retryPolicy),
-                Effect.tapError((err) => Effect.sync(() => console.error("getMatchingSubs Query failed", err))),
+                Effect.tapError((err) =>
+                  Effect.sync(() => logger.error("getMatchingSubs Query failed", { kind, error: err }))
+                ),
                 Effect.catch(() =>
-                  Effect.succeed({ Items: [] as Record<string, unknown>[], LastEvaluatedKey: undefined }),
+                  Effect.succeed({ Items: [] as Record<string, unknown>[], LastEvaluatedKey: undefined })
                 ),
               )
               for (const item of res.Items ?? []) {
@@ -176,7 +197,7 @@ const SubscriptionServiceDynamoLiveBase = Layer.effect(SubscriptionService)(
         Effect.gen(function*() {
           const filtersArr = Array.isArray(filters) ? filters : [filters]
           const result = yield* store.getEventsByFilter(filtersArr, limit)
-          console.log("[relay] getHistoricalEvents", {
+          logger.info("getHistoricalEvents", {
             filters: Schema.encodeUnknownSync(Schema.UnknownFromJsonString)(filtersArr),
             returning: result.length,
           })

@@ -1,17 +1,13 @@
+import { Logger } from "@aws-lambda-powertools/logger"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-  ScanCommand,
-} from "@aws-sdk/lib-dynamodb"
+import { DynamoDBDocumentClient, GetCommand, PutCommand, QueryCommand, ScanCommand } from "@aws-sdk/lib-dynamodb"
 import { matchesFilter } from "@eikeon/nostr-relay/filter"
 import { isAddressable, isEphemeral, isReplaceable } from "@eikeon/nostr-relay/nip01"
 import type { NostrEvent, NostrFilter } from "@eikeon/nostr-relay/schema"
 import { RelayStore } from "@eikeon/nostr-relay/services"
 import { Effect, Layer, ServiceMap } from "effect"
 
+const logger = new Logger({ serviceName: "nostr-relay" })
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}))
 
 export interface DynamoConfig {
@@ -42,7 +38,7 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
             )
             return !!res.Item
           } catch (err) {
-            console.error("hasEvent failed", { id, error: err })
+            logger.error("hasEvent failed", { id, error: err })
             return false
           }
         }),
@@ -68,8 +64,12 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
             await docClient.send(new PutCommand(putParams))
             return { duplicate: false }
           } catch (err) {
-            console.error("storeEvent failed", { eventId: event.id, error: err })
-            return { duplicate: false }
+            const name = (err as { name?: string })?.name
+            if (name === "ConditionalCheckFailedException") {
+              return { duplicate: true }
+            }
+            logger.error("storeEvent failed", { eventId: event.id, error: err })
+            throw err
           }
         }),
       getEvents: () =>
@@ -90,10 +90,10 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
             } while (lastKey)
 
             const map = new Map<string, NostrEvent>(allItems.map((e) => [e.id, e]))
-            console.log("[relay] getEvents", { total: map.size, kinds: [...new Set(allItems.map((e) => e.kind))] })
+            logger.info("getEvents", { total: map.size, kinds: [...new Set(allItems.map((e) => e.kind))] })
             return map
           } catch (err) {
-            console.error("getEvents failed", { error: err })
+            logger.error("getEvents failed", { error: err })
             return new Map<string, NostrEvent>()
           }
         }),
@@ -124,10 +124,9 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
             try {
               const allItems: NostrEvent[] = []
               for (const pubkey of authors) {
-                const keyCond =
-                  minSince !== undefined || maxUntil !== undefined
-                    ? "pubkey = :p AND created_at BETWEEN :lo AND :hi"
-                    : "pubkey = :p"
+                const keyCond = minSince !== undefined || maxUntil !== undefined
+                  ? "pubkey = :p AND created_at BETWEEN :lo AND :hi"
+                  : "pubkey = :p"
                 const exprValues: Record<string, string | number> = { ":p": pubkey }
                 if (minSince !== undefined) exprValues[":lo"] = minSince
                 if (maxUntil !== undefined) exprValues[":hi"] = maxUntil
@@ -149,7 +148,7 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
               const evs = allItems.filter((e) => matchesFilter(e, filtersArr))
               evs.sort((a, b) => b.created_at - a.created_at)
               const result = evs.slice(0, limit)
-              console.log("[relay] getEventsByFilter", {
+              logger.info("getEventsByFilter", {
                 index: "pubkey-created_at",
                 authors: authors.length,
                 totalQueried: allItems.length,
@@ -157,7 +156,7 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
               })
               return result
             } catch (err) {
-              console.error("getEventsByFilter Query (pubkey) failed", { error: err })
+              logger.error("getEventsByFilter Query (pubkey) failed", { error: err })
               return []
             }
           }
@@ -178,9 +177,16 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
               } while (lastKey)
               const evs = allItems.filter((e) => matchesFilter(e, filtersArr))
               evs.sort((a, b) => b.created_at - a.created_at)
-              return evs.slice(0, limit)
+              const result = evs.slice(0, limit)
+              logger.warn("getEventsByFilter using Scan fallback (no index match)", {
+                filters: filtersArr,
+                limit,
+                totalScanned: allItems.length,
+                returning: result.length,
+              })
+              return result
             } catch (err) {
-              console.error("getEventsByFilter Scan fallback failed", { error: err })
+              logger.error("getEventsByFilter Scan fallback failed", { filters: filtersArr, error: err })
               return []
             }
           }
@@ -193,10 +199,9 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
           try {
             const allItems: NostrEvent[] = []
             for (const kind of kinds) {
-              const keyCond =
-                minSince !== undefined || maxUntil !== undefined
-                  ? "kind = :k AND created_at BETWEEN :lo AND :hi"
-                  : "kind = :k"
+              const keyCond = minSince !== undefined || maxUntil !== undefined
+                ? "kind = :k AND created_at BETWEEN :lo AND :hi"
+                : "kind = :k"
               const exprValues: Record<string, number> = { ":k": kind }
               if (minSince !== undefined) exprValues[":lo"] = minSince
               if (maxUntil !== undefined) exprValues[":hi"] = maxUntil
@@ -224,14 +229,14 @@ export const RelayStoreDynamoLive = Layer.effect(RelayStore)(
             })
             deduped.sort((a, b) => b.created_at - a.created_at)
             const result = deduped.slice(0, limit)
-            console.log("[relay] getEventsByFilter", {
+            logger.info("getEventsByFilter", {
               kinds,
               totalQueried: allItems.length,
               returning: result.length,
             })
             return result
           } catch (err) {
-            console.error("getEventsByFilter Query failed", { kinds, error: err })
+            logger.error("getEventsByFilter Query failed", { kinds, error: err })
             return []
           }
         }),

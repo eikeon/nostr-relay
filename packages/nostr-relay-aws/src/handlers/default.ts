@@ -5,7 +5,7 @@ import {
   PostToConnectionCommand,
 } from "@aws-sdk/client-apigatewaymanagementapi"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb"
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb"
 import { HEX64 } from "@eikeon/nostr-relay/constants"
 import { getEffectiveLimit, validateFilters } from "@eikeon/nostr-relay/filter"
 import { type NostrEvent, NostrEventSchema, type NostrFilter, parseFilter } from "@eikeon/nostr-relay/schema"
@@ -89,20 +89,16 @@ function getConnectionAuth(
   return Effect.promise(async () => {
     try {
       const res = await docClient.send(
-        new QueryCommand({
+        new GetCommand({
           TableName: subsTable,
-          KeyConditionExpression: "connectionId = :c",
-          ExpressionAttributeValues: { ":c": connectionId },
-          Limit: 5,
+          Key: { connectionId, subId: "__challenge" },
         }),
       )
-      const challengeItem = res.Items?.find((i) => i.subId === "__challenge")
-      const authItem = res.Items?.find((i) => i.authenticatedPubkey)
+      const item = res.Item
+      if (!item) return null
       return {
-        challenge: challengeItem?.challenge as string | undefined,
-        authenticatedPubkey: (authItem?.authenticatedPubkey ?? challengeItem?.authenticatedPubkey) as
-          | string
-          | undefined,
+        challenge: item.challenge as string | undefined,
+        authenticatedPubkey: item.authenticatedPubkey as string | undefined,
       }
     } catch (err) {
       logger.error("getConnectionAuth failed", { connectionId, error: err })
@@ -138,8 +134,7 @@ function handleMessage(
     switch (type) {
       case "EVENT": {
         const eventId = getEventId(args[0])
-        const sendOk = (accepted: boolean, reason: string) =>
-          send(connectionId, ["OK", eventId, accepted, reason])
+        const sendOk = (accepted: boolean, reason: string) => send(connectionId, ["OK", eventId, accepted, reason])
 
         const evExit = yield* Effect.sync(() => decodeEvent(args[0]) as NostrEvent).pipe(Effect.exit)
         if (Exit.isFailure(evExit)) {
@@ -306,7 +301,12 @@ export const handler = async (event: APIGatewayProxyWebsocketEventV2) => {
 
   const domainName = event.requestContext.domainName
   const program = handleMessage(apiClient, connectionId, domainName, type, args, authState)
-  await runWithStoreAndSubs(program)
+  try {
+    await runWithStoreAndSubs(program)
+  } catch (err) {
+    logger.error("handleMessage failed", { connectionId, type, error: err })
+    return { statusCode: 500 }
+  }
 
   return { statusCode: 200 }
 }
