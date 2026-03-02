@@ -44,12 +44,7 @@ export const SubscriptionServiceMemoryLive = Layer.effect(SubscriptionService)(
             .map((sub) => ({ connKey: sub.connKey, subId: sub.subId, send: sub.send }))
         }),
       getHistoricalEvents: (filters, limit = 100) =>
-        Effect.gen(function*() {
-          const allEvents = yield* store.getEvents()
-          const evs = Array.from(allEvents.values()).filter((e) => matchesFilter(e, filters))
-          evs.sort((a, b) => b.created_at - a.created_at)
-          return evs.slice(0, limit)
-        }),
+        store.getEventsByFilter(Array.isArray(filters) ? filters : [filters], limit),
     }
     return impl
   }),

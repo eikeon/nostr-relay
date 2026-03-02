@@ -4,7 +4,7 @@
 
 import { Config, Effect, Layer, ServiceMap } from "effect"
 import { HEX64 } from "./constants.js"
-import type { NostrEvent } from "./schema.js"
+import type { NostrEvent, NostrFilter } from "./schema.js"
 
 const RelayConfigSchema = Config.all({
   port: Config.number("RELAY_PORT").pipe(Config.withDefault(() => 8181)),
@@ -29,6 +29,7 @@ export class RelayStore extends ServiceMap.Service<RelayStore, {
   readonly hasEvent: (id: string) => Effect.Effect<boolean>
   readonly storeEvent: (event: NostrEvent) => Effect.Effect<{ duplicate: boolean }>
   readonly getEvents: () => Effect.Effect<Map<string, NostrEvent>>
+  readonly getEventsByFilter: (filters: NostrFilter[], limit: number) => Effect.Effect<NostrEvent[]>
 }>()("RelayStore") {}
 
 /** RelayConfig - host, port, validation settings, banned pubkeys, and NIP-42 requireAuth */

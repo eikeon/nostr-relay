@@ -3,8 +3,9 @@
  */
 
 import { Effect, Layer, Ref } from "effect"
+import { matchesFilter } from "./filter.js"
 import { addressableKey, isAddressable, isEphemeral, isReplaceable, replaceableKey, shouldReplace } from "./nip01.js"
-import type { NostrEvent } from "./schema.js"
+import type { NostrEvent, NostrFilter } from "./schema.js"
 import { RelayStore } from "./services.js"
 
 function allEventIds(
@@ -103,6 +104,19 @@ export const RelayStoreLive = Layer.effect(RelayStore)(
             Ref.get(addressableRef),
           ])
           return mergeEvents(regular, replaceable, addressable)
+        }),
+
+      getEventsByFilter: (filters: NostrFilter[], limit: number) =>
+        Effect.gen(function*() {
+          const [regular, replaceable, addressable] = yield* Effect.all([
+            Ref.get(regularRef),
+            Ref.get(replaceableRef),
+            Ref.get(addressableRef),
+          ])
+          const merged = mergeEvents(regular, replaceable, addressable)
+          const evs = Array.from(merged.values()).filter((e) => matchesFilter(e, filters))
+          evs.sort((a, b) => b.created_at - a.created_at)
+          return evs.slice(0, limit)
         }),
     }
   }),
